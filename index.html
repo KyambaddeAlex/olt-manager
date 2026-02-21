@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLT Core Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div id="dashboard-view">
+        <h1>OLT CORE MANAGER</h1>
+        <div id="olt-grid">
+            <button class="olt-card">Kisugu</button>
+            <button class="olt-card">Kitintale</button>
+            <button class="olt-card">Kiruddu</button>
+            <button class="olt-card">Lubowa</button>
+            <button class="olt-card">Dundu</button>
+            <button class="olt-card">Namirembe</button>
+            <button class="olt-card">Kiwatule</button>
+            <button class="olt-card">Kimbeja1</button>
+            <button class="olt-card">Kalinabiri</button>
+            <button class="olt-card">Nalukolongo</button>
+            <button class="olt-card">Imperial</button>
+            <button class="olt-card">Bmk Wampewo</button>
+            <button class="olt-card">Raxio</button>
+            <button class="olt-card">Magwa</button>
+            <button class="olt-card">Hoima</button>
+            <button class="olt-card">Mbarara</button>
+            <button class="olt-card">Kimbeja2</button>
+        </div>
+    </div>
+
+    <div id="details-view" style="display:none;">
+        <button id="back-btn">← Back to Dashboard</button>
+        <h2 id="selected-olt-name">OLT: Kitintale</h2>
+        <form id="config-form">
+            <select id="board-select" name="board">
+                <option value="">BOARD (1-8)</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+            </select>
+            <select id="port-select" name="port">
+                <option value="">PORT (0-15)</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+            </select>
+            <input type="number" id="core-id-input" name="coreId" placeholder="CORE ID">
+            <button type="submit" id="save-btn">SAVE DATA</button>
+        </form>
+        <section id="saved-configs">
+            <h3>Saved Port Configurations</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>BOARD</th>
+                        <th>PORT</th>
+                        <th>CORE ID</th>
+                        <th>LAST UPDATE</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="config-table-body">
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
