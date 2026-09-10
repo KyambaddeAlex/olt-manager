@@ -1,4 +1,4 @@
-/* Reset and Base Styles */
+* Reset and Base Styles */
 * {
     margin: 0;
     padding: 0;
@@ -204,6 +204,109 @@ tbody td {
     color: #e0e0e0;
 }
 
+.empty-state td {
+    padding: 32px 16px;
+    text-align: center;
+    color: #9e9e9e;
+    font-style: italic;
+}
+
+/* Action Buttons */
+.action-cell {
+    white-space: nowrap;
+}
+
+.edit-btn,
+.delete-btn,
+.save-edit-btn,
+.cancel-edit-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:focus-visible,
+.delete-btn:focus-visible,
+.save-edit-btn:focus-visible,
+.cancel-edit-btn:focus-visible,
+.inline-input:focus-visible {
+    outline: 3px solid rgba(33, 150, 243, 0.45);
+    outline-offset: 2px;
+}
+
+.edit-btn {
+    background-color: #FF9800;
+    margin-right: 8px;
+}
+
+.edit-btn:hover {
+    background-color: #E68900;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.delete-btn {
+    background-color: #F44336;
+}
+
+.delete-btn:hover {
+    background-color: #D32F2F;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.save-edit-btn {
+    background-color: #4CAF50;
+    margin-right: 8px;
+}
+
+.save-edit-btn:hover {
+    background-color: #388E3C;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.cancel-edit-btn {
+    background-color: #9E9E9E;
+    margin-right: 8px;
+}
+
+.cancel-edit-btn:hover {
+    background-color: #757575;
+    box-shadow: 0 2px 8px rgba(158, 158, 158, 0.3);
+}
+
+/* Editing state */
+td.editing {
+    background-color: #202b36;
+    border: 1px solid #2196F3;
+    outline: none;
+}
+
+.inline-input {
+    width: 100%;
+    min-width: 72px;
+    padding: 9px 10px;
+    background: #121212;
+    border: 1px solid #607d8b;
+    border-radius: 5px;
+    color: #ffffff;
+    font: inherit;
+}
+
+.inline-input:focus {
+    border-color: #42a5f5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.18);
+}
+
+button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     #dashboard-view h1 {
@@ -237,10 +340,26 @@ tbody td {
 
     table {
         font-size: 0.9rem;
+        display: block;
+        overflow-x: auto;
     }
 
     thead th,
     tbody td {
         padding: 12px 10px;
+    }
+
+    .action-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .edit-btn,
+    .delete-btn,
+    .save-edit-btn,
+    .cancel-edit-btn {
+        margin-right: 0;
+        width: 100%;
     }
 }
