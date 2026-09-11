@@ -29,46 +29,79 @@ const coreIdInput = document.getElementById('core-id-input');
 const configTableBody = document.getElementById('config-table-body');
 const backBtn = document.getElementById('back-btn');
 const configForm = document.getElementById('config-form');
-const readOnlyMessage = document.getElementById('read-only-message');
-const actionHeader = document.getElementById('action-header');
+
+// Login / Access Control
+const loginView = document.getElementById('login-view');
+const loginForm = document.getElementById('login-form');
+const accessCodeInput = document.getElementById('access-code');
+const loginError = document.getElementById('login-error');
+const accessModeBadge = document.getElementById('access-mode');
+const detailsAccessMode = document.getElementById('details-access-mode');
+const logoutBtn = document.getElementById('logout-btn');
+
+const ADMIN_PASSCODE = 'Albombin';
+const VIEWER_PASSCODE = 'Alex';
+
+let isLoggedIn = false;
+let isAdmin = false;
+
+dashboardView.style.display = 'none';
 
 // ============================================
-// INITIALIZATION & ACCESS CONTROL
+// LOGIN / ACCESS CONTROL
 // ============================================
 
-/**
- * Initialize the app based on user access level
- */
-function initializeAppForUser() {
-    if (isAdmin()) {
-        // Show form for admin
-        configForm.style.display = 'flex';
-        readOnlyMessage.style.display = 'none';
-        actionHeader.style.display = 'table-cell';
-    } else if (isViewer()) {
-        // Hide form for viewer (read-only)
+loginForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const passcode = accessCodeInput.value.trim();
+
+    if (passcode === ADMIN_PASSCODE) {
+        isLoggedIn = true;
+        isAdmin = true;
+        hideLogin();
+    } else if (passcode === VIEWER_PASSCODE) {
+        isLoggedIn = true;
+        isAdmin = false;
+        hideLogin();
+    } else {
+        loginError.hidden = false;
+        accessCodeInput.value = '';
+        accessCodeInput.focus();
+    }
+});
+
+function hideLogin() {
+    loginView.style.display = 'none';
+    dashboardView.style.display = 'block';
+
+    const modeLabel = isAdmin ? 'ADMIN' : 'VIEW ONLY';
+    const badgeClass = isAdmin ? 'admin-badge' : 'viewer-badge';
+
+    accessModeBadge.textContent = modeLabel;
+    accessModeBadge.className = 'access-badge ' + badgeClass;
+    detailsAccessMode.textContent = modeLabel;
+    detailsAccessMode.className = 'access-badge ' + badgeClass;
+
+    if (!isAdmin) {
         configForm.style.display = 'none';
-        readOnlyMessage.style.display = 'block';
-        actionHeader.style.display = 'none';
     }
 }
 
-/**
- * Check access before allowing operations
- */
-function checkAccess(permission) {
-    if (!hasPermission(permission)) {
-        alert(`❌ Access Denied: You don't have permission to ${permission} data. Only administrators can perform this action.`);
-        return false;
-    }
-    return true;
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    populateBoardSelect();
-    populatePortSelect();
-    initializeAppForUser();
+logoutBtn.addEventListener('click', function() {
+    isLoggedIn = false;
+    isAdmin = false;
+    loginView.style.display = 'block';
+    dashboardView.style.display = 'none';
+    detailsView.style.display = 'none';
+    currentOLTName = '';
+    accessCodeInput.value = '';
+    loginError.hidden = true;
+    configForm.style.display = '';
+    configTableBody.replaceChildren();
+    const emptyRow = document.createElement('tr');
+    emptyRow.className = 'empty-state';
+    emptyRow.innerHTML = '<td colspan="5">No saved configurations for this OLT yet.</td>';
+    configTableBody.appendChild(emptyRow);
 });
 
 // ============================================
@@ -78,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Handle OLT card click - switch to details view
 document.querySelectorAll('.olt-card').forEach(card => {
     card.addEventListener('click', function() {
-        // Get the OLT name from the clicked button
+        if (!isLoggedIn) return;
         const oltName = this.textContent.trim();
         
         // Update the selected OLT name heading
@@ -138,6 +171,12 @@ function populatePortSelect() {
     }
 }
 
+// Initialize form dropdowns on page load
+document.addEventListener('DOMContentLoaded', function() {
+    populateBoardSelect();
+    populatePortSelect();
+});
+
 // ============================================
 // SAVE DATA FUNCTION
 // ============================================
@@ -145,13 +184,9 @@ function populatePortSelect() {
 // Handle form submission - save data to Firebase
 configForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    // Check access
-    if (!checkAccess('create')) {
-        return;
-    }
-    
-    // Get current OLT name
+
+    if (!isAdmin) return;
+
     const oltName = currentOLTName;
     
     // Get form values
@@ -181,7 +216,6 @@ configForm.addEventListener('submit', function(e) {
             boardSelect.value = '';
             portSelect.value = '';
             coreIdInput.value = '';
-            alert('✅ Configuration saved successfully!');
         })
         .catch((error) => {
             console.error('Error saving data:', error);
@@ -213,9 +247,7 @@ function makeButton(text, className, handler) {
 
 function renderActionButtons(row, key, oltName) {
     const actionCell = row.querySelector('.action-cell');
-    
-    // Only show action buttons if user has edit/delete permissions
-    if (hasPermission('edit') && hasPermission('delete')) {
+    if (isAdmin) {
         actionCell.replaceChildren(
             makeButton('Edit', 'edit-btn', () => enableEdit(row, key, oltName)),
             makeButton('Delete', 'delete-btn', () => deleteConfig(oltName, key))
@@ -291,11 +323,7 @@ function loadOLTData(oltName) {
 }
 
 function enableEdit(row, key, oltName) {
-    // Check access
-    if (!checkAccess('edit')) {
-        return;
-    }
-    
+    if (!isAdmin) return;
     if (row.dataset.editing === 'true') return;
     row.dataset.editing = 'true';
     row.dataset.original = JSON.stringify({
@@ -326,11 +354,7 @@ function enableEdit(row, key, oltName) {
 }
 
 function saveConfigEdit(key, row, oltName) {
-    // Check access
-    if (!checkAccess('edit')) {
-        return;
-    }
-    
+    if (!isAdmin) return;
     const board = row.querySelector('.board-cell input').value.trim();
     const port = row.querySelector('.port-cell input').value.trim();
     const coreId = row.querySelector('.coreid-cell input').value.trim();
@@ -364,7 +388,6 @@ function saveConfigEdit(key, row, oltName) {
         row.dataset.editing = 'false';
         delete row.dataset.original;
         renderActionButtons(row, key, oltName);
-        alert('✅ Configuration updated successfully!');
     }).catch((error) => {
         console.error('Error updating configuration:', error);
         saveButton.disabled = false;
@@ -384,20 +407,12 @@ function cancelEdit(row, key, oltName) {
 }
 
 function deleteConfig(oltName, key) {
-    // Check access
-    if (!checkAccess('delete')) {
-        return;
-    }
-    
+    if (!isAdmin) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
-    db.ref(`${configPath(oltName)}/${key}`).remove()
-        .then(() => {
-            alert('✅ Configuration deleted successfully!');
-        })
-        .catch((error) => {
-            console.error('Error deleting configuration:', error);
-            alert('Could not delete this configuration. Please try again.');
-        });
+    db.ref(`${configPath(oltName)}/${key}`).remove().catch((error) => {
+        console.error('Error deleting configuration:', error);
+        alert('Could not delete this configuration. Please try again.');
+    });
 }
 
 function formatDate(isoString) {
