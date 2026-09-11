@@ -9,8 +9,23 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 </head>
 <body>
+    <main id="login-view">
+        <form id="login-form" class="login-panel">
+            <h1>OLT CORE MANAGER</h1>
+            <p>Enter your access code to continue.</p>
+            <label for="access-code">Access code</label>
+            <input type="password" id="access-code" autocomplete="current-password" required>
+            <button type="submit" id="login-btn">ENTER</button>
+            <p id="login-error" class="login-error" role="alert" hidden>Invalid access code.</p>
+        </form>
+    </main>
+
     <div id="dashboard-view">
         <h1>OLT CORE MANAGER</h1>
+        <div class="access-bar">
+            <span id="access-mode"></span>
+            <button type="button" id="logout-btn">LOCK</button>
+        </div>
         <div id="olt-grid">
             <button class="olt-card">Kisugu</button>
             <button class="olt-card">Kitintale</button>
@@ -34,8 +49,9 @@
 
     <div id="details-view" style="display:none;">
         <button id="back-btn">← Back to Dashboard</button>
+        <span id="details-access-mode" class="access-badge"></span>
         <h2 id="selected-olt-name">OLT: Kitintale</h2>
-        <form id="config-form">
+        <form id="config-form" novalidate>
             <select id="board-select" name="board">
                 <option value="">BOARD (1-8)</option>
                 <option value="1">1</option>
