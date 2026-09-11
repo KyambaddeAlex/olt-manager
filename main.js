@@ -29,6 +29,47 @@ const coreIdInput = document.getElementById('core-id-input');
 const configTableBody = document.getElementById('config-table-body');
 const backBtn = document.getElementById('back-btn');
 const configForm = document.getElementById('config-form');
+const readOnlyMessage = document.getElementById('read-only-message');
+const actionHeader = document.getElementById('action-header');
+
+// ============================================
+// INITIALIZATION & ACCESS CONTROL
+// ============================================
+
+/**
+ * Initialize the app based on user access level
+ */
+function initializeAppForUser() {
+    if (isAdmin()) {
+        // Show form for admin
+        configForm.style.display = 'flex';
+        readOnlyMessage.style.display = 'none';
+        actionHeader.style.display = 'table-cell';
+    } else if (isViewer()) {
+        // Hide form for viewer (read-only)
+        configForm.style.display = 'none';
+        readOnlyMessage.style.display = 'block';
+        actionHeader.style.display = 'none';
+    }
+}
+
+/**
+ * Check access before allowing operations
+ */
+function checkAccess(permission) {
+    if (!hasPermission(permission)) {
+        alert(`❌ Access Denied: You don't have permission to ${permission} data. Only administrators can perform this action.`);
+        return false;
+    }
+    return true;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    populateBoardSelect();
+    populatePortSelect();
+    initializeAppForUser();
+});
 
 // ============================================
 // NAVIGATION FUNCTIONS
@@ -97,12 +138,6 @@ function populatePortSelect() {
     }
 }
 
-// Initialize form dropdowns on page load
-document.addEventListener('DOMContentLoaded', function() {
-    populateBoardSelect();
-    populatePortSelect();
-});
-
 // ============================================
 // SAVE DATA FUNCTION
 // ============================================
@@ -110,6 +145,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Handle form submission - save data to Firebase
 configForm.addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Check access
+    if (!checkAccess('create')) {
+        return;
+    }
     
     // Get current OLT name
     const oltName = currentOLTName;
@@ -141,6 +181,7 @@ configForm.addEventListener('submit', function(e) {
             boardSelect.value = '';
             portSelect.value = '';
             coreIdInput.value = '';
+            alert('✅ Configuration saved successfully!');
         })
         .catch((error) => {
             console.error('Error saving data:', error);
@@ -172,10 +213,16 @@ function makeButton(text, className, handler) {
 
 function renderActionButtons(row, key, oltName) {
     const actionCell = row.querySelector('.action-cell');
-    actionCell.replaceChildren(
-        makeButton('Edit', 'edit-btn', () => enableEdit(row, key, oltName)),
-        makeButton('Delete', 'delete-btn', () => deleteConfig(oltName, key))
-    );
+    
+    // Only show action buttons if user has edit/delete permissions
+    if (hasPermission('edit') && hasPermission('delete')) {
+        actionCell.replaceChildren(
+            makeButton('Edit', 'edit-btn', () => enableEdit(row, key, oltName)),
+            makeButton('Delete', 'delete-btn', () => deleteConfig(oltName, key))
+        );
+    } else {
+        actionCell.replaceChildren();
+    }
 }
 
 function createConfigRow(snapshot, oltName) {
@@ -244,6 +291,11 @@ function loadOLTData(oltName) {
 }
 
 function enableEdit(row, key, oltName) {
+    // Check access
+    if (!checkAccess('edit')) {
+        return;
+    }
+    
     if (row.dataset.editing === 'true') return;
     row.dataset.editing = 'true';
     row.dataset.original = JSON.stringify({
@@ -274,6 +326,11 @@ function enableEdit(row, key, oltName) {
 }
 
 function saveConfigEdit(key, row, oltName) {
+    // Check access
+    if (!checkAccess('edit')) {
+        return;
+    }
+    
     const board = row.querySelector('.board-cell input').value.trim();
     const port = row.querySelector('.port-cell input').value.trim();
     const coreId = row.querySelector('.coreid-cell input').value.trim();
@@ -307,6 +364,7 @@ function saveConfigEdit(key, row, oltName) {
         row.dataset.editing = 'false';
         delete row.dataset.original;
         renderActionButtons(row, key, oltName);
+        alert('✅ Configuration updated successfully!');
     }).catch((error) => {
         console.error('Error updating configuration:', error);
         saveButton.disabled = false;
@@ -326,11 +384,20 @@ function cancelEdit(row, key, oltName) {
 }
 
 function deleteConfig(oltName, key) {
+    // Check access
+    if (!checkAccess('delete')) {
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete this configuration?')) return;
-    db.ref(`${configPath(oltName)}/${key}`).remove().catch((error) => {
-        console.error('Error deleting configuration:', error);
-        alert('Could not delete this configuration. Please try again.');
-    });
+    db.ref(`${configPath(oltName)}/${key}`).remove()
+        .then(() => {
+            alert('✅ Configuration deleted successfully!');
+        })
+        .catch((error) => {
+            console.error('Error deleting configuration:', error);
+            alert('Could not delete this configuration. Please try again.');
+        });
 }
 
 function formatDate(isoString) {
