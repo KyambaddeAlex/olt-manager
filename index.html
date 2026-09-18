@@ -83,6 +83,9 @@
                 <option value="15">15</option>
             </select>
             <input type="number" id="core-id-input" name="coreId" placeholder="CORE ID">
+            <input type="text" id="location-name-input" name="locationName" placeholder="LOCATION NAME" autocomplete="address-level2">
+            <input type="text" id="coordinates-input" name="coordinates" placeholder="COORDINATES (e.g. 0.392, 32.659)" autocomplete="off" inputmode="decimal">
+            <button type="button" id="current-location-btn" title="Use your phone's current location">USE CURRENT LOCATION</button>
             <button type="submit" id="save-btn">SAVE DATA</button>
         </form>
         <section id="saved-configs">
@@ -93,13 +96,14 @@
                         <th>BOARD</th>
                         <th>PORT</th>
                         <th>CORE ID</th>
+                        <th>LOCATION</th>
                         <th>LAST UPDATE</th>
                         <th>ACTION</th>
                     </tr>
                 </thead>
                 <tbody id="config-table-body">
                     <tr class="empty-state">
-                        <td colspan="5">No saved configurations for this OLT yet.</td>
+                        <td colspan="6">No saved configurations for this OLT yet.</td>
                     </tr>
                 </tbody>
             </table>

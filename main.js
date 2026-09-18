@@ -26,6 +26,9 @@ const selectedOltNameHeading = document.getElementById('selected-olt-name');
 const boardSelect = document.getElementById('board-select');
 const portSelect = document.getElementById('port-select');
 const coreIdInput = document.getElementById('core-id-input');
+const locationNameInput = document.getElementById('location-name-input');
+const coordinatesInput = document.getElementById('coordinates-input');
+const currentLocationBtn = document.getElementById('current-location-btn');
 const configTableBody = document.getElementById('config-table-body');
 const backBtn = document.getElementById('back-btn');
 const configForm = document.getElementById('config-form');
@@ -41,6 +44,7 @@ const logoutBtn = document.getElementById('logout-btn');
 
 const ADMIN_PASSCODE = 'Albombin';
 const VIEWER_PASSCODE = 'Alex';
+const REVERSE_GEOCODE_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
 
 let isLoggedIn = false;
 let isAdmin = false;
@@ -100,7 +104,7 @@ logoutBtn.addEventListener('click', function() {
     configTableBody.replaceChildren();
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'empty-state';
-    emptyRow.innerHTML = '<td colspan="5">No saved configurations for this OLT yet.</td>';
+    emptyRow.innerHTML = '<td colspan="6">No saved configurations for this OLT yet.</td>';
     configTableBody.appendChild(emptyRow);
 });
 
@@ -177,6 +181,67 @@ document.addEventListener('DOMContentLoaded', function() {
     populatePortSelect();
 });
 
+coordinatesInput.addEventListener('blur', function() {
+    const coordinates = parseCoordinates(coordinatesInput.value);
+    if (coordinates) reverseGeocode(coordinates.latitude, coordinates.longitude, locationNameInput);
+});
+
+currentLocationBtn.addEventListener('click', useCurrentLocation);
+
+function parseCoordinates(value) {
+    const parts = value.split(',').map((part) => Number(part.trim()));
+    if (parts.length !== 2 || parts.some((part) => !Number.isFinite(part))) return null;
+    const [latitude, longitude] = parts;
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+    return { latitude, longitude };
+}
+
+function formatCoordinates(latitude, longitude) {
+    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
+async function reverseGeocode(latitude, longitude, locationInput = locationNameInput) {
+    try {
+        const params = new URLSearchParams({ latitude, longitude, localityLanguage: 'en' });
+        const response = await fetch(`${REVERSE_GEOCODE_URL}?${params}`);
+        if (!response.ok) throw new Error(`Reverse geocoding failed with status ${response.status}`);
+        const place = await response.json();
+        const locationName = place.locality || place.city || place.principalSubdivision || place.countryName;
+        if (locationInput && locationName) locationInput.value = locationName;
+    } catch (error) {
+        console.warn('Could not determine a place name from these coordinates:', error);
+    }
+}
+
+function useCurrentLocation({ locationInput = locationNameInput, coordinatesInputRef = coordinatesInput, button = currentLocationBtn } = {}) {
+    if (!navigator.geolocation) {
+        alert('Current location is not available in this browser. Enter coordinates manually.');
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'LOCATING...';
+    }
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        if (coordinatesInputRef) coordinatesInputRef.value = formatCoordinates(latitude, longitude);
+        if (locationInput) await reverseGeocode(latitude, longitude, locationInput);
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'USE CURRENT LOCATION';
+        }
+    }, (error) => {
+        console.warn('Could not get current location:', error);
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'USE CURRENT LOCATION';
+        }
+        alert('Could not access your current location. Please allow location access or enter coordinates manually.');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
+
 // ============================================
 // SAVE DATA FUNCTION
 // ============================================
@@ -193,9 +258,11 @@ configForm.addEventListener('submit', function(e) {
     const board = boardSelect.value;
     const port = portSelect.value;
     const coreId = coreIdInput.value;
+    const locationName = locationNameInput.value.trim();
+    const coordinates = coordinatesInput.value.trim();
     
     // Validate inputs
-    if (!oltName || !board || !port || !coreId) {
+    if (!oltName || !board || !port || !coreId || !locationName || !coordinates) {
         alert('Please fill in all fields');
         return;
     }
@@ -205,6 +272,8 @@ configForm.addEventListener('submit', function(e) {
         board: board,
         port: port,
         coreId: coreId,
+        locationName,
+        coordinates,
         lastUpdate: new Date().toISOString()
     };
     
@@ -216,6 +285,8 @@ configForm.addEventListener('submit', function(e) {
             boardSelect.value = '';
             portSelect.value = '';
             coreIdInput.value = '';
+            locationNameInput.value = '';
+            coordinatesInput.value = '';
         })
         .catch((error) => {
             console.error('Error saving data:', error);
@@ -270,6 +341,8 @@ function createConfigRow(snapshot, oltName) {
         row.appendChild(cell);
     });
 
+    row.appendChild(createLocationCell(data));
+
     const dateCell = document.createElement('td');
     dateCell.className = 'date-cell';
     dateCell.textContent = formatDate(data.lastUpdate);
@@ -280,6 +353,39 @@ function createConfigRow(snapshot, oltName) {
     row.appendChild(actionCell);
     renderActionButtons(row, key, oltName);
     return row;
+}
+
+function createLocationCell(data) {
+    const cell = document.createElement('td');
+    cell.className = 'location-cell';
+
+    const locationLink = document.createElement('a');
+    locationLink.className = 'location-link';
+    locationLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.coordinates || '')}`;
+    locationLink.target = '_blank';
+    locationLink.rel = 'noopener noreferrer';
+    locationLink.title = 'Open location in Google Maps';
+
+    const pin = document.createElement('span');
+    pin.className = 'location-pin';
+    pin.textContent = '📍';
+    pin.setAttribute('aria-hidden', 'true');
+
+    const details = document.createElement('div');
+    details.className = 'location-details';
+
+    const name = document.createElement('strong');
+    name.className = 'location-name';
+    name.textContent = data.locationName || 'Location not set';
+
+    const coordinates = document.createElement('span');
+    coordinates.className = 'coordinates-pill';
+    coordinates.textContent = data.coordinates || 'Coordinates not set';
+
+    details.append(name, coordinates);
+    locationLink.append(pin, details);
+    cell.append(locationLink);
+    return cell;
 }
 
 function loadOLTData(oltName) {
@@ -316,7 +422,7 @@ function loadOLTData(oltName) {
         if (!snapshot.exists() && !configTableBody.querySelector('.empty-state')) {
             const emptyRow = document.createElement('tr');
             emptyRow.className = 'empty-state';
-            emptyRow.innerHTML = '<td colspan="5">No saved configurations for this OLT yet.</td>';
+            emptyRow.innerHTML = '<td colspan="6">No saved configurations for this OLT yet.</td>';
             configTableBody.appendChild(emptyRow);
         }
     });
@@ -329,7 +435,9 @@ function enableEdit(row, key, oltName) {
     row.dataset.original = JSON.stringify({
         board: row.querySelector('.board-cell').textContent,
         port: row.querySelector('.port-cell').textContent,
-        coreId: row.querySelector('.coreid-cell').textContent
+        coreId: row.querySelector('.coreid-cell').textContent,
+        locationName: row.querySelector('.location-name').textContent,
+        coordinates: row.querySelector('.coordinates-pill').textContent
     });
 
     ['board', 'port', 'coreid'].forEach((field) => {
@@ -345,6 +453,40 @@ function enableEdit(row, key, oltName) {
         cell.classList.add('editing');
     });
 
+    const locationCell = row.querySelector('.location-cell');
+    locationCell.replaceChildren();
+    locationCell.classList.add('editing');
+
+    const locationNameInput = document.createElement('input');
+    locationNameInput.className = 'inline-input';
+    locationNameInput.type = 'text';
+    locationNameInput.value = JSON.parse(row.dataset.original).locationName;
+    locationNameInput.setAttribute('aria-label', 'Location Name');
+    locationNameInput.dataset.field = 'locationName';
+
+    const coordinatesInput = document.createElement('input');
+    coordinatesInput.className = 'inline-input';
+    coordinatesInput.type = 'text';
+    coordinatesInput.value = JSON.parse(row.dataset.original).coordinates;
+    coordinatesInput.setAttribute('aria-label', 'Coordinates');
+    coordinatesInput.dataset.field = 'coordinates';
+
+    const useCurrentLocationBtn = makeButton('Use Current', 'location-current-btn', () => {
+        useCurrentLocation({
+            locationInput: locationNameInput,
+            coordinatesInputRef: coordinatesInput,
+            button: useCurrentLocationBtn
+        });
+    });
+
+    coordinatesInput.addEventListener('blur', function() {
+        const coordinates = parseCoordinates(this.value);
+        if (!coordinates) return;
+        reverseGeocode(coordinates.latitude, coordinates.longitude, locationNameInput);
+    });
+
+    locationCell.append(locationNameInput, coordinatesInput, useCurrentLocationBtn);
+
     const actionCell = row.querySelector('.action-cell');
     actionCell.replaceChildren(
         makeButton('Save', 'save-edit-btn', () => saveConfigEdit(key, row, oltName)),
@@ -358,6 +500,8 @@ function saveConfigEdit(key, row, oltName) {
     const board = row.querySelector('.board-cell input').value.trim();
     const port = row.querySelector('.port-cell input').value.trim();
     const coreId = row.querySelector('.coreid-cell input').value.trim();
+    const locationName = row.querySelector('.location-cell input[data-field="locationName"]').value.trim();
+    const coordinates = row.querySelector('.location-cell input[data-field="coordinates"]').value.trim();
 
     if (!/^([1-8])$/.test(board)) {
         alert('Board must be a number between 1 and 8.');
@@ -371,6 +515,10 @@ function saveConfigEdit(key, row, oltName) {
         alert('Core ID is required.');
         return;
     }
+    if (!locationName || !coordinates) {
+        alert('Location name and coordinates are required.');
+        return;
+    }
 
     const saveButton = row.querySelector('.save-edit-btn');
     saveButton.disabled = true;
@@ -378,11 +526,14 @@ function saveConfigEdit(key, row, oltName) {
         board,
         port,
         coreId,
+        locationName,
+        coordinates,
         lastUpdate: new Date().toISOString()
     }).then(() => {
         row.querySelector('.board-cell').textContent = board;
         row.querySelector('.port-cell').textContent = port;
         row.querySelector('.coreid-cell').textContent = coreId;
+        row.replaceChild(createLocationCell({ locationName, coordinates }), row.querySelector('.location-cell'));
         row.querySelector('.date-cell').textContent = formatDate(new Date().toISOString());
         row.querySelectorAll('.editing').forEach((cell) => cell.classList.remove('editing'));
         row.dataset.editing = 'false';
@@ -400,6 +551,7 @@ function cancelEdit(row, key, oltName) {
     row.querySelector('.board-cell').textContent = original.board;
     row.querySelector('.port-cell').textContent = original.port;
     row.querySelector('.coreid-cell').textContent = original.coreId;
+    row.replaceChild(createLocationCell(original), row.querySelector('.location-cell'));
     row.querySelectorAll('.editing').forEach((cell) => cell.classList.remove('editing'));
     row.dataset.editing = 'false';
     delete row.dataset.original;
