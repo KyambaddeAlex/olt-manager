@@ -71,6 +71,17 @@ input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgb
 .location-current-btn { border: 1px solid #40546d; border-radius: 7px; padding: 8px 10px; color: #b9d7fa; background: rgba(79, 156, 249, .1); font-size: .72rem; font-weight: 800; white-space: nowrap; transition: background .2s ease, border-color .2s ease; }
 .location-current-btn:hover { border-color: var(--blue); background: rgba(79, 156, 249, .18); }
 #saved-configs { overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: rgba(21, 24, 29, .82); box-shadow: 0 16px 40px rgba(0, 0, 0, .14); }
+
+@media (max-width: 700px) {
+    body { padding: 18px; }
+    #dashboard-view h1 { font-size: 1.5rem; }
+    #olt-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 10px; }
+    .olt-card { padding: 16px 12px; font-size: .9rem; }
+    #config-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #save-btn, #current-location-btn { grid-column: 1 / -1; }
+    #saved-configs { overflow-x: auto; }
+    table { min-width: 640px; }
+}
 #saved-configs h3 { margin: 0; padding: 18px 18px 14px; color: #f1f5f9; font-size: 1.05rem; }
 table { width: 100%; border-collapse: collapse; }
 thead { background: #111419; }
@@ -101,60 +112,3 @@ td.editing { padding: 9px; background: rgba(79, 156, 249, .08); }
 .location-current-btn:disabled { cursor: wait; opacity: .65; }
 button:disabled { cursor: wait; opacity: .65; }
 
-@media (max-width: 850px) {
-    body { padding: 20px; }
-    #config-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    #save-btn { grid-column: 1 / -1; }
-    table { display: block; overflow-x: auto; }
-    #saved-configs { border-radius: 8px; }
-}
-@media (max-width: 520px) {
-    body { padding: 14px; }
-    #config-form { grid-template-columns: 1fr; }
-    #save-btn { grid-column: auto; }
-    #details-view > .access-badge { float: none; margin-bottom: 12px; }
-    .action-cell { display: flex; flex-direction: column; gap: 6px; }
-    .delete-btn, .cancel-edit-btn { margin-left: 0; }
-}
-
-@media (max-width: 700px) {
-    #config-form input, #config-form select, #save-btn, #current-location-btn, #back-btn, #logout-btn,
-    .edit-btn, .delete-btn, .save-edit-btn, .cancel-edit-btn { min-height: 44px; }
-    #config-form input, #config-form select { font-size: 16px; }
-    #dashboard-view h1 { font-size: 1.55rem; }
-    #selected-olt-name { font-size: 1.45rem; }
-    #saved-configs { overflow: visible; background: transparent; border: 0; box-shadow: none; }
-    #saved-configs h3 { padding: 0 0 14px; }
-    table, thead, tbody, tbody tr, tbody td { display: block; }
-    thead { display: none; }
-    tbody tr {
-        margin-bottom: 12px; padding: 6px 0; border: 1px solid var(--border);
-        border-radius: 9px; background: var(--surface); box-shadow: 0 10px 24px rgba(0, 0, 0, .14);
-    }
-    tbody tr:last-child { border-bottom: 1px solid var(--border); }
-    tbody td {
-        display: grid; grid-template-columns: 94px minmax(0, 1fr); gap: 12px;
-        align-items: center; padding: 10px 14px; border: 0; min-width: 0;
-    }
-    tbody td::before {
-        color: var(--muted); content: ""; font-size: .68rem; font-weight: 800;
-        letter-spacing: .08em; text-transform: uppercase;
-    }
-    tbody td:nth-child(1)::before { content: "Board"; }
-    tbody td:nth-child(2)::before { content: "Port"; }
-    tbody td:nth-child(3)::before { content: "Core ID"; }
-    tbody td:nth-child(4)::before { content: "Location"; }
-    tbody td:nth-child(5)::before { content: "Updated"; }
-    tbody td:nth-child(6)::before { content: "Action"; align-self: start; padding-top: 8px; }
-    .location-cell { min-width: 0; }
-    .location-link { min-width: 0; }
-    .location-details { min-width: 0; }
-    .location-name { overflow-wrap: anywhere; }
-    .coordinates-pill { max-width: 100%; overflow-wrap: anywhere; }
-    .date-cell { min-width: 0; white-space: normal; }
-    .action-cell { display: flex; flex-direction: row; flex-wrap: wrap; gap: 7px; }
-    .delete-btn, .cancel-edit-btn { margin-left: 0; }
-    .empty-state { padding: 0; }
-    .empty-state td { display: block; padding: 28px 16px; }
-    .empty-state td::before { display: none; }
-}
