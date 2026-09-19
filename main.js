@@ -333,6 +333,8 @@ function createConfigRow(snapshot, oltName) {
     const key = snapshot.key;
     const row = document.createElement('tr');
     row.dataset.key = key;
+    row.dataset.board = data.board ?? '';
+    row.dataset.port = data.port ?? '';
 
     ['board', 'port', 'coreId'].forEach((field) => {
         const cell = document.createElement('td');
@@ -353,6 +355,16 @@ function createConfigRow(snapshot, oltName) {
     row.appendChild(actionCell);
     renderActionButtons(row, key, oltName);
     return row;
+}
+
+function sortConfigRows() {
+    const rows = [...configTableBody.querySelectorAll('tr:not(.empty-state)')];
+    rows.sort((firstRow, secondRow) => {
+        const boardDifference = Number(firstRow.dataset.board) - Number(secondRow.dataset.board);
+        if (boardDifference !== 0) return boardDifference;
+        return Number(firstRow.dataset.port) - Number(secondRow.dataset.port);
+    });
+    rows.forEach((row) => configTableBody.appendChild(row));
 }
 
 function createLocationCell(data) {
@@ -402,6 +414,7 @@ function loadOLTData(oltName) {
         const emptyState = configTableBody.querySelector('.empty-state');
         if (emptyState) emptyState.remove();
         configTableBody.appendChild(createConfigRow(snapshot, oltName));
+        sortConfigRows();
     };
     currentRemovedListener = (snapshot) => {
         const row = configTableBody.querySelector(`tr[data-key="${snapshot.key}"]`);
@@ -412,6 +425,7 @@ function loadOLTData(oltName) {
         if (!row || row.dataset.editing === 'true') return;
         const replacement = createConfigRow(snapshot, oltName);
         row.replaceWith(replacement);
+        sortConfigRows();
     };
 
     activeConfigsRef.on('child_added', currentConfigListener);
@@ -532,6 +546,8 @@ function saveConfigEdit(key, row, oltName) {
     }).then(() => {
         row.querySelector('.board-cell').textContent = board;
         row.querySelector('.port-cell').textContent = port;
+        row.dataset.board = board;
+        row.dataset.port = port;
         row.querySelector('.coreid-cell').textContent = coreId;
         row.replaceChild(createLocationCell({ locationName, coordinates }), row.querySelector('.location-cell'));
         row.querySelector('.date-cell').textContent = formatDate(new Date().toISOString());
@@ -539,6 +555,7 @@ function saveConfigEdit(key, row, oltName) {
         row.dataset.editing = 'false';
         delete row.dataset.original;
         renderActionButtons(row, key, oltName);
+        sortConfigRows();
     }).catch((error) => {
         console.error('Error updating configuration:', error);
         saveButton.disabled = false;
