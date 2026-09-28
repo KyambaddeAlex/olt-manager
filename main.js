@@ -32,11 +32,14 @@ const currentLocationBtn = document.getElementById('current-location-btn');
 const configTableBody = document.getElementById('config-table-body');
 const backBtn = document.getElementById('back-btn');
 const configForm = document.getElementById('config-form');
+const savedConfigs = document.getElementById('saved-configs');
+const oltGrid = document.getElementById('olt-grid');
 
 // Login / Access Control
 const loginView = document.getElementById('login-view');
 const loginForm = document.getElementById('login-form');
 const accessCodeInput = document.getElementById('access-code');
+const loginBtn = document.getElementById('login-btn');
 const loginError = document.getElementById('login-error');
 const accessModeBadge = document.getElementById('access-mode');
 const detailsAccessMode = document.getElementById('details-access-mode');
@@ -52,30 +55,198 @@ let isAdmin = false;
 dashboardView.style.display = 'none';
 
 // ============================================
+// BOOT SEQUENCE (splash -> login)
+// ============================================
+
+const BOOT = {
+    progressEnd: 2050,   // progress bar fills to 100%
+    burstAt: 2180,       // white burst fires
+    dissolveAt: 2250,    // overlay starts fading out
+    goneAt: 2830,        // overlay removed from the layer tree
+    revealLogin: 2380,   // login panel leaves its splash state
+    statuses: [
+        { at: 260, text: 'INITIALISING' },
+        { at: 760, text: 'LINKING NODE MESH' },
+        { at: 1320, text: 'SYNCING PORT TABLE' },
+        { at: 1880, text: 'ACCESS GATE READY' }
+    ]
+};
+
+const splashEl = document.getElementById('splash');
+const screenFlash = document.getElementById('screen-flash');
+const splashTitleEl = document.getElementById('splash-title');
+const splashStatusEl = document.getElementById('splash-status');
+const splashPercentEl = document.getElementById('splash-percent');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function splitTitle(el, text) {
+    el.textContent = '';
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const span = document.createElement('span');
+        span.className = 'ch';
+        span.style.setProperty('--i', i);
+        span.textContent = ch === ' ' ? '\u00A0' : ch;
+        el.appendChild(span);
+    }
+}
+
+function setStatus(text) {
+    splashStatusEl.classList.remove('is-swap');
+    void splashStatusEl.offsetWidth;
+    splashStatusEl.textContent = text;
+    splashStatusEl.classList.add('is-swap');
+}
+
+let loginRevealed = false;
+
+function revealLoginPanel() {
+    if (loginRevealed) return;
+    loginRevealed = true;
+    loginForm.classList.remove('is-splash');
+    loginForm.classList.add('is-ready');
+    screenFlash.classList.add('is-flash');
+    window.setTimeout(function() {
+        if (loginView.style.display !== 'none') accessCodeInput.focus({ preventScroll: true });
+    }, 700);
+}
+
+function endSplash() {
+    splashEl.classList.add('is-gone');
+    document.body.classList.add('booted');
+}
+
+function runBootSequence() {
+    if (!splashEl) {
+        revealLoginPanel();
+        return;
+    }
+
+    if (reduceMotion) {
+        splashEl.classList.add('is-gone');
+        document.body.classList.add('booted');
+        window.setTimeout(revealLoginPanel, 500);
+        return;
+    }
+
+    splitTitle(splashTitleEl, splashTitleEl.dataset.text || splashTitleEl.textContent);
+
+    const start = performance.now();
+    let lastPercent = -1;
+
+    function frame(now) {
+        const t = Math.min((now - start) / BOOT.progressEnd, 1);
+        const eased = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        splashEl.style.setProperty('--p', eased.toFixed(4));
+        const percent = Math.round(eased * 100);
+        if (percent !== lastPercent) {
+            lastPercent = percent;
+            splashPercentEl.textContent = percent + '%';
+        }
+        if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    BOOT.statuses.forEach(function(step) {
+        window.setTimeout(function() { setStatus(step.text); }, step.at);
+    });
+
+    window.setTimeout(function() { splashEl.classList.add('is-burst'); }, BOOT.burstAt);
+    window.setTimeout(function() { splashEl.classList.add('is-done'); }, BOOT.dissolveAt);
+    window.setTimeout(endSplash, BOOT.goneAt);
+    window.setTimeout(revealLoginPanel, BOOT.revealLogin);
+}
+
+runBootSequence();
+
+// ============================================
+// INTERFACE MOTION HELPERS
+// ============================================
+
+const VERIFY_DELAY = 480;
+const SWAP_DELAY = 520;
+
+function replay(node, className) {
+    if (!node) return;
+    node.classList.remove(className);
+    void node.offsetWidth;
+    node.classList.add(className);
+}
+
+// Give every OLT card its index, a status dot and a spotlight-friendly surface
+document.querySelectorAll('.olt-card').forEach(function (card, index) {
+    const name = card.textContent.trim();
+    card.dataset.olt = name;
+    card.style.setProperty('--i', index);
+
+    const label = document.createElement('span');
+    label.className = 'card-name';
+    label.textContent = name;
+
+    const position = document.createElement('span');
+    position.className = 'card-index';
+    position.textContent = String(index + 1).padStart(2, '0');
+
+    const dot = document.createElement('span');
+    dot.className = 'card-dot';
+
+    card.replaceChildren(label, position, dot);
+});
+
+// Cursor-tracked spotlight on the cards
+oltGrid.addEventListener('pointermove', function (e) {
+    const card = e.target.closest('.olt-card');
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width) * 100 + '%');
+    card.style.setProperty('--my', ((e.clientY - rect.top) / rect.height) * 100 + '%');
+});
+
+// ============================================
 // LOGIN / ACCESS CONTROL
 // ============================================
 
 loginForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    const passcode = accessCodeInput.value.trim();
+    if (loginBtn.disabled) return;
 
-    if (passcode === ADMIN_PASSCODE) {
+    const passcode = accessCodeInput.value.trim();
+    if (!passcode) return;
+
+    loginBtn.classList.add('is-busy');
+    loginBtn.disabled = true;
+    accessCodeInput.disabled = true;
+
+    window.setTimeout(function () {
+        const accepted = passcode === ADMIN_PASSCODE || passcode === VIEWER_PASSCODE;
+
+        if (!accepted) {
+            loginBtn.classList.remove('is-busy');
+            loginBtn.disabled = false;
+            accessCodeInput.disabled = false;
+            loginError.hidden = false;
+            loginForm.classList.add('is-error');
+            accessCodeInput.value = '';
+            accessCodeInput.focus();
+            window.setTimeout(function () { loginForm.classList.remove('is-error'); }, 460);
+            return;
+        }
+
         isLoggedIn = true;
-        isAdmin = true;
-        hideLogin();
-    } else if (passcode === VIEWER_PASSCODE) {
-        isLoggedIn = true;
-        isAdmin = false;
-        hideLogin();
-    } else {
-        loginError.hidden = false;
-        accessCodeInput.value = '';
-        accessCodeInput.focus();
-    }
+        isAdmin = passcode === ADMIN_PASSCODE;
+        loginBtn.classList.remove('is-busy');
+        loginBtn.classList.add('is-ok');
+        window.setTimeout(hideLogin, SWAP_DELAY);
+    }, VERIFY_DELAY);
 });
 
 function hideLogin() {
-    loginView.style.display = 'none';
+    loginView.classList.add('is-done');
+    window.setTimeout(function () {
+        loginView.style.display = 'none';
+    }, 280);
+
+    replay(dashboardView, 'is-ready');
     dashboardView.style.display = 'block';
 
     const modeLabel = isAdmin ? 'ADMIN' : 'VIEW ONLY';
@@ -94,13 +265,19 @@ function hideLogin() {
 logoutBtn.addEventListener('click', function() {
     isLoggedIn = false;
     isAdmin = false;
+    loginView.classList.remove('is-done');
     loginView.style.display = 'block';
     dashboardView.style.display = 'none';
     detailsView.style.display = 'none';
     currentOLTName = '';
     accessCodeInput.value = '';
+    accessCodeInput.disabled = false;
     loginError.hidden = true;
+    loginForm.classList.remove('is-error');
+    loginBtn.classList.remove('is-busy', 'is-ok');
+    loginBtn.disabled = false;
     configForm.style.display = '';
+    configTableBody.classList.remove('is-loading');
     configTableBody.replaceChildren();
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'empty-state';
@@ -116,18 +293,21 @@ logoutBtn.addEventListener('click', function() {
 document.querySelectorAll('.olt-card').forEach(card => {
     card.addEventListener('click', function() {
         if (!isLoggedIn) return;
-        const oltName = this.textContent.trim();
-        
+        const oltName = this.dataset.olt || this.textContent.trim();
+
         // Update the selected OLT name heading
         selectedOltNameHeading.textContent = `OLT: ${oltName}`;
-        
+
         // Store current OLT name
         currentOLTName = oltName;
-        
+
         // Hide dashboard, show details
         dashboardView.style.display = 'none';
         detailsView.style.display = 'block';
-        
+        replay(detailsView, 'is-ready');
+        replay(configForm, 'is-ready');
+        replay(savedConfigs, 'is-ready');
+
         // Load data for this OLT
         loadOLTData(oltName);
     });
@@ -138,7 +318,8 @@ backBtn.addEventListener('click', function() {
     // Hide details, show dashboard
     detailsView.style.display = 'none';
     dashboardView.style.display = 'block';
-    
+    replay(dashboardView, 'is-ready');
+
     // Clear current OLT name
     currentOLTName = "";
 });
@@ -332,6 +513,7 @@ function createConfigRow(snapshot, oltName) {
     const data = snapshot.val() || {};
     const key = snapshot.key;
     const row = document.createElement('tr');
+    row.className = 'data-row';
     row.dataset.key = key;
     row.dataset.board = data.board ?? '';
     row.dataset.port = data.port ?? '';
@@ -365,6 +547,32 @@ function sortConfigRows() {
         return Number(firstRow.dataset.port) - Number(secondRow.dataset.port);
     });
     rows.forEach((row) => configTableBody.appendChild(row));
+}
+
+function showSkeletonRows() {
+    configTableBody.replaceChildren();
+    configTableBody.classList.add('is-loading');
+    for (let r = 0; r < 3; r++) {
+        const row = document.createElement('tr');
+        row.className = 'skeleton-row';
+        for (let c = 0; c < 6; c++) {
+            const cell = document.createElement('td');
+            const bar = document.createElement('span');
+            bar.className = 'skeleton-bar';
+            bar.style.width = (38 + ((r * 17 + c * 11) % 45)) + '%';
+            cell.appendChild(bar);
+            row.appendChild(cell);
+        }
+        configTableBody.appendChild(row);
+    }
+}
+
+// Entrance animations run once per row, then the classes are stripped so that
+// re-ordering the table (sortConfigRows) never replays them.
+function settleRow(row, delay) {
+    window.setTimeout(function () {
+        row.classList.remove('data-row', 'is-new');
+    }, delay);
 }
 
 function createLocationCell(data) {
@@ -401,7 +609,7 @@ function createLocationCell(data) {
 }
 
 function loadOLTData(oltName) {
-    configTableBody.replaceChildren();
+    showSkeletonRows();
 
     if (activeConfigsRef) {
         activeConfigsRef.off('child_added', currentConfigListener);
@@ -413,19 +621,32 @@ function loadOLTData(oltName) {
     currentConfigListener = (snapshot) => {
         const emptyState = configTableBody.querySelector('.empty-state');
         if (emptyState) emptyState.remove();
-        configTableBody.appendChild(createConfigRow(snapshot, oltName));
+
+        const wasLoading = configTableBody.classList.contains('is-loading');
+        configTableBody.classList.remove('is-loading');
+
+        const row = createConfigRow(snapshot, oltName);
+        row.style.setProperty('--i', configTableBody.querySelectorAll('tr.data-row').length);
+        if (!wasLoading) row.classList.add('is-new');
+
+        configTableBody.appendChild(row);
         sortConfigRows();
+        settleRow(row, 1500);
     };
     currentRemovedListener = (snapshot) => {
         const row = configTableBody.querySelector(`tr[data-key="${snapshot.key}"]`);
-        if (row) row.remove();
+        if (!row || row.classList.contains('is-leaving')) return;
+        row.classList.add('is-leaving');
+        window.setTimeout(function () { row.remove(); }, 240);
     };
     currentChangedListener = (snapshot) => {
         const row = configTableBody.querySelector(`tr[data-key="${snapshot.key}"]`);
         if (!row || row.dataset.editing === 'true') return;
         const replacement = createConfigRow(snapshot, oltName);
+        replacement.style.setProperty('--i', 0);
         row.replaceWith(replacement);
         sortConfigRows();
+        settleRow(replacement, 700);
     };
 
     activeConfigsRef.on('child_added', currentConfigListener);
@@ -433,6 +654,7 @@ function loadOLTData(oltName) {
     activeConfigsRef.on('child_changed', currentChangedListener);
 
     activeConfigsRef.once('value').then((snapshot) => {
+        configTableBody.classList.remove('is-loading');
         if (!snapshot.exists() && !configTableBody.querySelector('.empty-state')) {
             const emptyRow = document.createElement('tr');
             emptyRow.className = 'empty-state';
