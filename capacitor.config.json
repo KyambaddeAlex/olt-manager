@@ -1,0 +1,12 @@
+{
+  "appId": "com.olt.coremanager",
+  "appName": "OLT Core Manager",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0b0d10"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

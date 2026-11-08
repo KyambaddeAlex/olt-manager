@@ -1,157 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OLT Core Manager</title>
-    <link rel="stylesheet" href="style.css?v=5">
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
-</head>
-<body>
-    <div id="splash" class="splash" role="presentation" aria-hidden="true">
-        <div class="splash-bg"></div>
-        <div class="splash-grid"></div>
-        <div class="splash-vignette"></div>
-
-        <div class="splash-flash"></div>
-        <div class="splash-burst"></div>
-
-        <div class="splash-rings">
-            <span></span><span></span><span></span><span></span>
-        </div>
-
-        <div class="splash-core">
-            <div class="splash-logo">
-                <span class="logo-halo"></span>
-                <span class="logo-orbit"></span>
-                <svg class="logo-mark" viewBox="0 0 120 120" focusable="false">
-                    <circle class="mark-ring" cx="60" cy="60" r="45" />
-                    <path class="mark-bolt" d="M68 20 L36 68 H57 L49 100 L82 50 H60 Z" />
-                    <path class="mark-wave" d="M24 86 q8 -11 16 0 t16 0 t16 0 t16 0" />
-                </svg>
-                <span class="logo-glint"></span>
-            </div>
-
-            <h1 class="splash-title" id="splash-title" data-text="OLT CORE MANAGER">OLT CORE MANAGER</h1>
-            <p class="splash-sub" id="splash-sub">OPTICAL LINE TERMINATION</p>
-
-            <div class="splash-progress">
-                <div class="progress-track"><i class="progress-fill"></i></div>
-                <span class="progress-value" id="splash-percent">0%</span>
-            </div>
-
-            <p class="splash-status" id="splash-status">INITIALISING</p>
-        </div>
-
-        <div class="splash-scanline"></div>
-    </div>
-
-    <div class="screen-flash" id="screen-flash" aria-hidden="true"></div>
-
-    <main id="login-view">
-        <form id="login-form" class="login-panel is-splash">
-            <h1 class="login-title" id="login-title">OLT CORE MANAGER</h1>
-            <div class="login-body" id="login-body">
-                <p>Enter your access code to continue.</p>
-                <label for="access-code">Access code</label>
-                <input type="password" id="access-code" autocomplete="current-password" required>
-                <button type="submit" id="login-btn">ENTER</button>
-                <p id="login-error" class="login-error" role="alert" hidden>Invalid access code.</p>
-            </div>
-        </form>
-    </main>
-
-    <div id="dashboard-view">
-        <h1>OLT CORE MANAGER</h1>
-        <div class="access-bar">
-            <span id="access-mode"></span>
-            <button type="button" id="logout-btn">LOCK</button>
-        </div>
-        <div id="olt-grid">
-            <button class="olt-card">Kisugu</button>
-            <button class="olt-card">Kitintale</button>
-            <button class="olt-card">Kiruddu</button>
-            <button class="olt-card">Lubowa</button>
-            <button class="olt-card">Dundu</button>
-            <button class="olt-card">Namirembe</button>
-            <button class="olt-card">Kiwatule</button>
-            <button class="olt-card">Kimbeja1</button>
-            <button class="olt-card">Kalinabiri</button>
-            <button class="olt-card">Nalukolongo</button>
-            <button class="olt-card">Imperial</button>
-            <button class="olt-card">Bmk Wampewo</button>
-            <button class="olt-card">Raxio</button>
-            <button class="olt-card">Magwa</button>
-            <button class="olt-card">Hoima</button>
-            <button class="olt-card">Mbarara</button>
-            <button class="olt-card">Kimbeja2</button>
-        </div>
-    </div>
-
-    <div id="details-view" style="display:none;">
-        <button id="back-btn">← Back to Dashboard</button>
-        <span id="details-access-mode" class="access-badge"></span>
-        <h2 id="selected-olt-name">OLT: Kitintale</h2>
-        <form id="config-form" novalidate>
-            <select id="board-select" name="board">
-                <option value="">BOARD (1-8)</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-            </select>
-            <select id="port-select" name="port">
-                <option value="">PORT (0-15)</option>
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-                <option value="13">13</option>
-                <option value="14">14</option>
-                <option value="15">15</option>
-            </select>
-            <input type="number" id="core-id-input" name="coreId" placeholder="CORE ID">
-            <input type="text" id="location-name-input" name="locationName" placeholder="LOCATION NAME" autocomplete="address-level2">
-            <input type="text" id="coordinates-input" name="coordinates" placeholder="COORDINATES (e.g. 0.392, 32.659)" autocomplete="off" inputmode="decimal">
-            <button type="button" id="current-location-btn" title="Use your phone's current location">USE CURRENT LOCATION</button>
-            <button type="submit" id="save-btn">SAVE DATA</button>
-        </form>
-        <section id="saved-configs">
-            <h3>Saved Port Configurations</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>BOARD</th>
-                        <th>PORT</th>
-                        <th>CORE ID</th>
-                        <th>LOCATION</th>
-                        <th>LAST UPDATE</th>
-                        <th>ACTION</th>
-                    </tr>
-                </thead>
-                <tbody id="config-table-body">
-                    <tr class="empty-state">
-                        <td colspan="6">No saved configurations for this OLT yet.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-    </div>
-
-    <script src="main.js?v=5"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OLT Core Manager | Optical Line Terminal & Fiber Core System</title>
+    <meta name="description" content="Professional telecom operations platform for managing Optical Line Terminal (OLT) chassis, 8-board 16-port configurations, fiber core TIA-598 mapping, FAT coordinates with geolocation, and Firebase Realtime Database sync across 17 sites." />
+    <meta property="og:title" content="OLT Core Manager | Optical Line Terminal & Fiber Core System" />
+    <meta property="og:description" content="Professional telecom operations platform for managing Optical Line Terminal (OLT) chassis, 8-board 16-port configurations, fiber core TIA-598 mapping, FAT coordinates with geolocation, and Firebase Realtime Database sync across 17 sites." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-black min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
