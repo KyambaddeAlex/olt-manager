@@ -16,6 +16,7 @@ import { OltDashboard } from './components/OltDashboard';
 import { SiteDetailsView } from './components/SiteDetailsView';
 import { FirebaseSettingsModal } from './components/FirebaseSettingsModal';
 import { AdminUsersModal } from './components/AdminUsersModal';
+import { InstallAppActions } from './components/InstallAppActions';
 import { AuthenticatedOperator } from './types/auth';
 
 type AppViewState = 'BOOTING' | 'LOCKED' | 'DASHBOARD' | 'SITE_DETAILS';
@@ -151,6 +152,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-black flex flex-col justify-between">
+      <InstallAppActions />
       {/* 1. Loading Screen */}
       {viewState === 'BOOTING' && (
         <BrandedLoadingScreen onComplete={handleBootComplete} />

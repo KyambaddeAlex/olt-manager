@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Database, Lock, Settings, LayoutDashboard, ChevronRight, User, Download, ShieldCheck } from 'lucide-react';
+import { Server, Database, Lock, Settings, LayoutDashboard, ChevronRight, User, ShieldCheck } from 'lucide-react';
 import { OltSite } from '../types/olt';
 
 interface NavigationBarProps {
@@ -91,18 +91,6 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
               {isFirebaseConnected ? 'RTDB' : 'Local'}
             </span>
           </button>
-
-          {/* Download Project Source Code ZIP */}
-          <a
-            href={`${import.meta.env.BASE_URL}olt-core-manager.zip`}
-            download="olt-core-manager.zip"
-            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 transition-all cursor-pointer shadow-sm"
-            title="Download full project source code as a ZIP file"
-            aria-label="Download project ZIP"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Download ZIP</span>
-          </a>
 
           {/* Settings Modal Button */}
           {isAdmin && (

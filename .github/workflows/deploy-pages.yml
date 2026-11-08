@@ -38,6 +38,24 @@ jobs:
           VITE_FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Sync Android project
+        run: npx cap sync android
+
+      - name: Build Android APK
+        run: ./gradlew --no-daemon assembleDebug
+        working-directory: android
+
+      - name: Add APK download to website
+        run: |
+          mkdir -p www/downloads
+          cp android/app/build/outputs/apk/debug/app-debug.apk www/downloads/OLT-Core-Manager.apk
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

@@ -1,18 +1,23 @@
-# Rebuilds the Android app and drops the APK at the project root.
-# Usage:  powershell -ExecutionPolicy Bypass -File .\build-apk.ps1
-
-$env:JAVA_HOME = "C:\Users\DELL\.jdks\jbr-17.0.14"
-$env:PATH = "$env:JAVA_HOME\bin;C:\Program Files\nodejs;$env:PATH"
-
+# Rebuilds the web app, syncs Capacitor, and drops a debug APK at the project root.
+# Usage: powershell -ExecutionPolicy Bypass -File .\build-apk.ps1
 $root = $PSScriptRoot
-
-Copy-Item "$root\index.html", "$root\style.css", "$root\main.js" -Destination "$root\www" -Force
-
-Push-Location "$root\android"
 try {
-    .\gradlew.bat assembleDebug --console=plain
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "$root\OLT-Core-Manager.apk" -Force
+    Push-Location $root
+    & npm.cmd run build
+    if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit code $LASTEXITCODE." }
+
+    & npx.cmd cap sync android
+    if ($LASTEXITCODE -ne 0) { throw "Capacitor sync failed with exit code $LASTEXITCODE." }
+
+    Push-Location "$root\android"
+    try {
+        & .\gradlew.bat assembleDebug --no-daemon --console=plain
+        if ($LASTEXITCODE -ne 0) { throw "Android build failed with exit code $LASTEXITCODE." }
+    } finally {
+        Pop-Location
+    }
+
+    Copy-Item "$root\android\app\build\outputs\apk\debug\app-debug.apk" "$root\OLT-Core-Manager.apk" -Force
 } finally {
     Pop-Location
 }
