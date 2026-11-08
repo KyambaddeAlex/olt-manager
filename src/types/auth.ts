@@ -23,5 +23,6 @@ export interface AuditEntry {
   siteName: string;
   recordId: string;
   summary: string;
+  details?: string;
   timestamp: number | string | object;
 }

@@ -27,6 +27,7 @@ The production web build is written to `www/`. `npm run sync` copies that build 
 ## Firebase access, accounts, and roles
 
 - New users register with their name, email, and password and must verify the email. Verified field accounts can add, edit, and delete OLT configurations.
+- If an account password is forgotten, enter the account email on the sign-in screen and select **Forgot password?**. Firebase sends a reset link to that address; never share the password in chat.
 - The designated verified administrator email is `kyambaddealex55@gmail.com`; only that account (or a user granted a trusted Firebase `admin: true` custom claim) can inspect account profiles and read the audit trail. The initial admin account must exist in Firebase Authentication. If it does not, register it through the app and verify its email.
 - To bootstrap the designated admin, register that email in the app, verify it, and sign in using a newly chosen password. Never use a password exposed in chat or source code.
 - Configuration edits, creations, and deletions are committed atomically with an append-only audit entry containing the authenticated operator identity, server timestamp, site, and record. The audit trail starts when the updated app is deployed; it cannot reconstruct changes made earlier.

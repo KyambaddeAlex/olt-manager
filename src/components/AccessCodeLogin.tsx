@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { KeyRound, Lock, Radio, ShieldCheck, UserPlus } from 'lucide-react';
-import { registerWithEmailPassword, signInWithEmailPassword } from '../services/firebaseAuth';
+import { registerWithEmailPassword, sendPasswordReset, signInWithEmailPassword } from '../services/firebaseAuth';
 import { AuthenticatedOperator } from '../types/auth';
 
 interface AccessCodeLoginProps {
@@ -21,11 +21,13 @@ export const AccessCodeLogin: React.FC<AccessCodeLoginProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState(initialError);
+  const [resetNotice, setResetNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage('');
+    setResetNotice('');
     setIsSubmitting(true);
 
     try {
@@ -42,7 +44,31 @@ export const AccessCodeLogin: React.FC<AccessCodeLoginProps> = ({
       const operator = await signInWithEmailPassword(email.trim(), password);
       onLoginSuccess(operator);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Sign-in failed. Check your Firebase configuration.');
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
+          ? error.code
+          : '';
+      setErrorMessage(
+        code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found'
+          ? 'Email or password is incorrect. Use “Forgot password?” to reset it.'
+          : error instanceof Error
+            ? error.message
+            : 'Sign-in failed. Check your Firebase configuration.'
+      );
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setErrorMessage('');
+    setResetNotice('');
+    setIsSubmitting(true);
+    try {
+      await sendPasswordReset(email);
+      setResetNotice('If an account exists for that email, Firebase has sent a password-reset link.');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not send the password-reset email.');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -115,9 +141,21 @@ export const AccessCodeLogin: React.FC<AccessCodeLoginProps> = ({
             </div>
 
             <div>
-              <label htmlFor="login-password" className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Password
-              </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="login-password" className="block text-xs font-semibold text-slate-300">
+                  Password
+                </label>
+                {!isRegistering && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handlePasswordReset}
+                    className="text-[11px] font-semibold text-cyan-300 hover:text-cyan-200 disabled:opacity-60"
+                  >
+                    FORGOT PASSWORD?
+                  </button>
+                )}
+              </div>
               <input
                 id="login-password"
                 type="password"
@@ -133,6 +171,11 @@ export const AccessCodeLogin: React.FC<AccessCodeLoginProps> = ({
             {errorMessage && (
               <p role="alert" className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">
                 {errorMessage}
+              </p>
+            )}
+            {resetNotice && (
+              <p role="status" className="text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                {resetNotice}
               </p>
             )}
 

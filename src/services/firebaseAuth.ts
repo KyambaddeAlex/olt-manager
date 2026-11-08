@@ -4,6 +4,7 @@ import {
   onIdTokenChanged,
   createUserWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
   signOut,
@@ -68,6 +69,12 @@ export async function signInWithEmailPassword(email: string, password: string): 
   }
 }
 
+export async function sendPasswordReset(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('Enter your account email first.');
+  await sendPasswordResetEmail(getConfiguredAuth(), normalizedEmail);
+}
+
 export async function registerWithEmailPassword(
   email: string,
   password: string,
@@ -108,9 +115,18 @@ export function observeFirebaseAuth(
           return;
         }
 
-        void toOperator(user).then(onChange).catch((error: unknown) => {
-          onError(error instanceof Error ? error : new Error('Could not read the Firebase user role.'));
-        });
+        void toOperator(user)
+          .then(async (operator) => {
+            await ensureOperatorProfile({
+              uid: operator.uid,
+              email: operator.email!,
+              displayName: operator.name,
+            }, false);
+            onChange(operator);
+          })
+          .catch((error: unknown) => {
+            onError(error instanceof Error ? error : new Error('Could not read the Firebase user role.'));
+          });
       },
       (error) => onError(error)
     );

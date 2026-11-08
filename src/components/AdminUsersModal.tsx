@@ -94,7 +94,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ onClose }) => 
             <div className="overflow-x-auto rounded-xl border border-slate-800">
               <table className="w-full min-w-[760px] text-left text-xs">
                 <thead className="bg-slate-950 text-[10px] uppercase tracking-wide text-slate-400">
-                  <tr><th className="px-4 py-3">When</th><th className="px-4 py-3">Operator</th><th className="px-4 py-3">Action</th><th className="px-4 py-3">Site</th><th className="px-4 py-3">Configuration</th></tr>
+                  <tr><th className="px-4 py-3">When</th><th className="px-4 py-3">Operator</th><th className="px-4 py-3">Action</th><th className="px-4 py-3">Site</th><th className="px-4 py-3">Configuration changes</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {auditEntries.slice(0, 250).map((entry) => (
@@ -103,7 +103,7 @@ export const AdminUsersModal: React.FC<AdminUsersModalProps> = ({ onClose }) => 
                       <td className="px-4 py-3"><span className="block font-medium text-white">{entry.actorName}</span><span className="text-[10px] text-slate-400">{entry.actorEmail}</span></td>
                       <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-[10px] ${entry.action === 'DELETE' ? 'bg-rose-500/10 text-rose-300' : entry.action === 'CREATE' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{entry.action}</span></td>
                       <td className="px-4 py-3">{entry.siteName}</td>
-                      <td className="px-4 py-3">{entry.summary}</td>
+                      <td className="px-4 py-3"><span className="block font-medium text-white">{entry.summary}</span><span className="mt-1 block max-w-xl whitespace-normal text-[11px] text-slate-400">{entry.details || 'Detailed field changes are unavailable for this older entry.'}</span></td>
                     </tr>
                   ))}
                   {!auditEntries.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">No edits have been recorded since audit logging was enabled.</td></tr>}

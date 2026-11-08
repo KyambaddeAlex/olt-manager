@@ -29,10 +29,59 @@ function getLegacySiteName(siteId: OltSiteId): string {
   return site.name;
 }
 
+const AUDITED_FIELDS: Array<[string, keyof PortRecord]> = [
+  ['Board', 'boardNumber'],
+  ['Port', 'portNumber'],
+  ['Core ID', 'coreId'],
+  ['Location', 'locationName'],
+  ['Coordinates', 'coordinates'],
+  ['Status', 'status'],
+  ['PON type', 'ponType'],
+  ['Split ratio', 'splitRatio'],
+  ['TX power', 'opticalPowerTxDbm'],
+  ['RX power', 'opticalPowerRxDbm'],
+  ['Circuit ID', 'customerCircuitId'],
+  ['Cable tag', 'cableTag'],
+  ['Technician', 'technicianName'],
+  ['Notes', 'notes'],
+];
+
+function getAuditedValue(record: PortRecord, field: keyof PortRecord): unknown {
+  if (field === 'coordinates') {
+    return { lat: record.coordinates.lat, lng: record.coordinates.lng };
+  }
+  return record[field];
+}
+
+function formatAuditedValue(value: unknown): string {
+  const formatted = value === undefined || value === null || value === ''
+    ? '—'
+    : typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value);
+  return formatted.length > 120 ? `${formatted.slice(0, 117)}...` : formatted;
+}
+
+function describeAuditDetails(action: AuditEntry['action'], record: PortRecord, previous?: PortRecord): string {
+  const changes = AUDITED_FIELDS.flatMap(([label, field]) => {
+    const newValue = getAuditedValue(record, field);
+    if (action === 'UPDATE' && previous) {
+      const oldValue = getAuditedValue(previous, field);
+      if (JSON.stringify(oldValue) === JSON.stringify(newValue)) return [];
+      return [`${label}: ${formatAuditedValue(oldValue)} → ${formatAuditedValue(newValue)}`];
+    }
+    return [`${label}: ${formatAuditedValue(action === 'DELETE' ? getAuditedValue(record, field) : newValue)}`];
+  });
+
+  if (action === 'UPDATE' && !changes.length) return 'Saved without changes to tracked fields.';
+  return `${action === 'CREATE' ? 'Initial values' : action === 'UPDATE' ? 'Changed fields' : 'Previous values'}: ${changes.join('; ')}`;
+}
+
 function createAuditEntry(
   action: AuditEntry['action'],
   record: PortRecord,
-  actor: AuthenticatedOperator
+  actor: AuthenticatedOperator,
+  previous?: PortRecord
 ): AuditEntry {
   const id = push(ref(getDatabaseInstance(), 'activityLogs')).key;
   if (!id) throw new Error('Could not generate an audit log ID.');
@@ -47,6 +96,7 @@ function createAuditEntry(
     siteName,
     recordId: record.id,
     summary: `${action === 'CREATE' ? 'Created' : action === 'UPDATE' ? 'Updated' : 'Deleted'} board ${record.boardNumber}, port ${record.portNumber} (${record.coreId}) at ${record.locationName}`,
+    details: describeAuditDetails(action, record, previous),
     timestamp: serverTimestamp(),
   };
 }
@@ -210,7 +260,7 @@ export async function persistPortRecord(
   }
 
   const basePath = `olts/${siteName}/configs/${record.id}`;
-  const audit = createAuditEntry(action, record, actor);
+  const audit = createAuditEntry(action, record, actor, existingIdx >= 0 ? all[existingIdx] : undefined);
   const auditPath = `activityLogs/${audit.id}`;
   const legacyRecord = {
     board: String(record.boardNumber),
@@ -263,12 +313,14 @@ export async function removePortRecord(
 }
 
 export async function ensureOperatorProfile(
-  profile: Pick<OperatorProfile, 'uid' | 'email' | 'displayName'>
+  profile: Pick<OperatorProfile, 'uid' | 'email' | 'displayName'>,
+  updateLastSeen = true
 ): Promise<void> {
   const database = getDatabaseInstance();
   const profileRef = ref(database, `users/${profile.uid}`);
   const snapshot = await get(profileRef);
   const existing = snapshot.exists() ? snapshot.val() as OperatorProfile : null;
+  if (existing && !updateLastSeen) return;
   const now = new Date().toISOString();
   await update(profileRef, existing
     ? { email: profile.email, displayName: profile.displayName, lastSeenAt: now }
