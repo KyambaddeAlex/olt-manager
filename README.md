@@ -24,7 +24,7 @@ Responsive OLT field-operations app based on the `smart olt - Copy` design, with
 
 The production web build is written to `www/`. `npm run sync` copies that build into the Capacitor Android project.
 
-The GitHub Pages site is installable as a PWA on supported browsers. On Android, use **Android app** to download and install the APK, or choose **Install app** when your browser offers it. To build a local debug APK, run `npm run apk`; it rebuilds the web app, syncs Capacitor, and writes `OLT-Core-Manager.apk` in the project root.
+The GitHub Pages site is installable as a PWA on supported browsers. On Android, use **Android app** to download and install the APK, or choose **Install app** when your browser offers it. To build a local debug APK, run `npm run apk`; it rebuilds the web app, syncs Capacitor, and writes `OLT-Core-Manager.apk` in the project root and `public/downloads/`.
 
 ## Firebase access, accounts, and roles
 
@@ -43,6 +43,7 @@ The GitHub Pages site is installable as a PWA on supported browsers. On Android,
 1. Create a GitHub repository and push this project to its `main` or `master` branch.
 2. In **Settings → Pages**, choose **GitHub Actions** as the build and deployment source.
 3. Add repository Actions variables named `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_DATABASE_URL`, and `FIREBASE_PROJECT_ID`. These values are public Firebase web-app configuration and will be embedded in the frontend bundle; secure access with Firebase Authentication and Realtime Database rules, not by hiding the API key.
-4. Push to `main`/`master`. The workflow builds the web app and Android debug APK, makes the APK available from the site, and deploys `www/`; its URL appears in the workflow run or Pages settings.
+4. Build the Android debug APK with `npm run apk` and commit the updated `public/downloads/OLT-Core-Manager.apk` when publishing a new app version.
+5. Push to `main`/`master`. The workflow builds the web app and deploys `www/`, including the committed APK; its URL appears in the workflow run or Pages settings.
 
 This workspace did not include Git repository metadata, so initialize/connect a GitHub repository before pushing.

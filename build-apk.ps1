@@ -17,7 +17,11 @@ try {
         Pop-Location
     }
 
-    Copy-Item "$root\android\app\build\outputs\apk\debug\app-debug.apk" "$root\OLT-Core-Manager.apk" -Force
+    $apkPath = "$root\android\app\build\outputs\apk\debug\app-debug.apk"
+    Copy-Item $apkPath "$root\OLT-Core-Manager.apk" -Force
+    New-Item -ItemType Directory -Path "$root\public\downloads", "$root\www\downloads" -Force | Out-Null
+    Copy-Item $apkPath "$root\public\downloads\OLT-Core-Manager.apk" -Force
+    Copy-Item $apkPath "$root\www\downloads\OLT-Core-Manager.apk" -Force
 } finally {
     Pop-Location
 }
