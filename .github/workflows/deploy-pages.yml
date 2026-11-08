@@ -48,7 +48,7 @@ jobs:
         run: npx cap sync android
 
       - name: Build Android APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: bash ./gradlew --no-daemon assembleDebug
         working-directory: android
 
       - name: Add APK download to website
